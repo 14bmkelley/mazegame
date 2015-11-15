@@ -1,11 +1,15 @@
 /**
  * Maze.java
  * A class to represent a maze with logic to support the use
- * of Treasures, Monsters, and an Explorer.
+ *   of Treasures, Monsters, and an Explorer.
  * @author Brandon M. Kelley
  * @since October 23, 2015
  */
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.PrintStream;
 import java.util.ArrayList;
 
 public class Maze {
@@ -147,8 +151,7 @@ public class Maze {
     for (int i = 0; i < randomOccupants.size(); i++) {
       if (randomOccupants.get(i) instanceof Monster) {
         
-        Monster monster = (Monster) randomOccupants.get(i);
-        Square monsterLocation = monster.location();
+        Square monsterLocation = randomOccupants.get(i).location();
         Square explorerLocation = explorer.location();
         
         if (monsterLocation.row() == explorerLocation.row() &&
@@ -307,9 +310,101 @@ public class Maze {
   }
   
   /**
+   * Save the current Maze to a file
+   * @param fileName: String to use as the name of the save file
+   */
+  public void writeMazeToFile(String fileName) throw IOException {
+    
+    // Create output file stream
+    PrintStream file = new PrintStream(new File(fileName));
+    
+    // Write maze dimensions
+    file.println(rows + "," + cols);
+    
+    // Write Squares
+    for (int i = 0; i < rows; i++) {
+      for (int j = 0; j < cols; j++) {
+        file.println(squares[i][j].toText());
+      }
+    }
+    
+    // Write Explorer
+    file.println(explorer.toText());
+    
+    // Write RandomOccupants
+    for (int i = 0; i < randomOccupants.size(); i++) {
+      
+      // Write a Treasure
+      if (randomOccupants[i] instanceof Treasure) {
+        file.println(((Treasure) randomOccupants[i]).toText());
+        
+      // Write a Monster
+      } else {
+        file.println(randomOccupants[i].toText());
+      }
+      
+    }
+    
+    // Close the output file
+    file.close();
+    
+  }
+  
+  /**
+   * Read and set the Maze status from a file
+   * @param fileName: String to use as the name of the saved file
+   */
+  public void readMazeFromFile(String fileName)
+    throws IOException, FileNotFoundException, MazeReadException {
+    
+    // Create input file stream
+    Scanner file = new Scanner(new File(fileName));
+    
+    // Read in the size of the Maze
+    Scanner mazeSetup = new Scanner(file.nextLine()).useDelimiter(",");
+    rows = mazeSetup.nextInt();
+    cols = mazeSetup.nextInt();
+    squares = new Square[rows][cols];
+    
+    // Loop through lines of the saved file
+    while (file.hasNextLine()) {
+      
+      // Identify what kind of maze object is on the next line
+      Scanner input = new Scanner(file.nextLine()).useDelimiter(",");
+      String datatype = input.next();
+      
+      // Create a new Square
+      if (datatype.equals("Square")) {
+        int row = input.nextInt();
+        int col = input.nextInt();
+        squares[row][col] = new Square(row, col);
+        squares[row][col].toObject(input);
+      
+      // Create a new Explorer
+      } else if (datatype.equals("Explorer")) {
+        explorer = new Explorer(maze);
+        explorer.toObject(input);
+      
+      // Create a new Monster
+      } else if (datatype.equals("Monster")) {
+        Monster m = new Monster(maze);
+        m.toObject(input);
+        randomOccupants.add(m);
+      
+      // Create a new Treasure
+      } else if (datatype.equals("Treasure")) {
+        Treasure t = new Treasure(maze);
+        t.toObject(input);
+        randomOccupants.add(t);
+      }
+      
+    }
+    
+  }
+  
+  /**
    * Check if all of the treasures have been found
-   * @return boolean: whether all of the treasures have
-   * been found
+   * @return boolean: whether all of the treasures have been found
    */
   private boolean foundAllTreasures() {
     
